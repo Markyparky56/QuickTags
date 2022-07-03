@@ -3,7 +3,7 @@
 #include <cstdio>
 
 // 8.8.8.8
-using QTag32 = QuickTag<uint64_t, QuickTags::TagBlock<0, 8>, QuickTags::TagBlock<8, 8>, QuickTags::TagBlock<16, 8>, QuickTags::TagBlock<24, 8>>;
+using QTag32 = QuickTag<uint32_t, QuickTags::TagBlock<0, 8>, QuickTags::TagBlock<8, 8>, QuickTags::TagBlock<16, 8>, QuickTags::TagBlock<24, 8>>;
 // 16.16.16.16
 using QTag64 = QuickTag<uint64_t, QuickTags::TagBlock<0, 16>, QuickTags::TagBlock<16, 16>, QuickTags::TagBlock<32, 16>, QuickTags::TagBlock<48, 16>>;
 // 10.10.10.2
@@ -15,10 +15,10 @@ int main(int argc, char** argv)
   QTag32 my32BitTag(rawValue32);
 
   printf("32-bit Tag Components:\n");
-  printf("Value of A: %llu\n", my32BitTag.Get<0>());
-  printf("Value of B: %llu\n", my32BitTag.Get<1>());
-  printf("Value of C: %llu\n", my32BitTag.Get<2>());
-  printf("Value of D: %llu\n", my32BitTag.Get<3>());
+  printf("Value of A: %u\n", my32BitTag.Get<0>());
+  printf("Value of B: %u\n", my32BitTag.Get<1>());
+  printf("Value of C: %u\n", my32BitTag.Get<2>());
+  printf("Value of D: %u\n", my32BitTag.Get<3>());
 
   uint64_t rawValue64 = (4827ull) | (56867ull << 16) | (5334ull << 32) | (30319ull << 48);
   QTag64 my64BitTag(rawValue64);

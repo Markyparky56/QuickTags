@@ -96,6 +96,19 @@ private:
   BaseType Value;
 };
 
+template<typename BaseType, unsigned char... Blocks>
+class QuickTag2
+{
+  static constexpr std::size_t NumBlocks = sizeof...(Blocks);
+  static constexpr unsigned char Blocks[NumBlocks] = { Blocks... };
+
+public:
+
+
+private:
+  BaseType Value;
+};
+
 /*
 * Untemplated Reference
 class QuickTag

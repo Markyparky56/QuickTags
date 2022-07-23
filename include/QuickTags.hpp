@@ -156,22 +156,22 @@ public:
 
   constexpr bool IsValid() const
   {
-    bool bValid = Value != 0;
-    if (!bValid)
+    // First check if Value is set
+    if (Value != 0)
     {
       return false;
     }
 
-    // Scan backwards from last field, if we find a null value before a valid value, we've got bad data
-    int validFields = 0;
+    // Then scan backwards from last field, if we find a null value before a valid value, we've got bad data
+    bool bPrevFieldWasValid = false;
     for (int f = NumFields-1; f >= 0; --f)
     {
       const BaseType field = Value & GetMask(f);
       if (field != 0)
       {
-        validFields++;
+        bPrevFieldWasValid |= true;
       }
-      else if(validFields > 0)
+      else if(bPrevFieldWasValid)
       {
         return false;
       }

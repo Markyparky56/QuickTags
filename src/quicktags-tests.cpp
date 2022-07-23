@@ -46,5 +46,14 @@ int main(int argc, char** argv)
   printf("Value of C: %u\n", myVar0Tag2.Get<2>());
   printf("Value of D: %u\n", myVar0Tag2.Get<3>());
 
+  QuickTag2<uint64_t, 8, 8, 8, 8, 16, 16> betterTag({ 7,6,5,4,13,10 });
+  printf("64-bit 8.8.8.8.16.16 Tag Components:\n");
+  printf("Value of A: %llu\n", betterTag.GetField(0));
+  printf("Value of B: %llu\n", betterTag.GetField(1));
+  printf("Value of C: %llu\n", betterTag.GetField(2));
+  printf("Value of D: %llu\n", betterTag.GetField(3));
+  printf("Value of E: %llu\n", betterTag.GetField(4));
+  printf("Value of F: %llu\n", betterTag.GetField(5));
+
   return 0;
 }

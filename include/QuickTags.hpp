@@ -96,16 +96,47 @@ private:
   BaseType Value;
 };
 
-template<typename BaseType, unsigned char... Blocks>
+template<typename BaseType, unsigned char... Field>
 class QuickTag2
 {
-  static constexpr std::size_t NumBlocks = sizeof...(Blocks);
-  static constexpr unsigned char Blocks[NumBlocks] = { Blocks... };
+  static constexpr std::size_t NumFields = sizeof...(Field);
+  static constexpr unsigned char Fields[NumFields] = { Field... };
 
 public:
+  constexpr QuickTag2() : Value(0) {}
+  explicit constexpr QuickTag2(BaseType rawValue) : Value(rawValue) {}
+  constexpr QuickTag2(const BaseType(&fields)[NumFields])
+  {
+    Value = 0;
+    for (int f = 0; f < NumFields; ++f)
+    {
+      const unsigned char offset = GetOffset(f);
+      const BaseType mask = GetMask(f);
+      Value |= (fields[f] << offset) & mask;
+    }
+  }
 
+  BaseType GetField(const unsigned char field) const
+  {
+    return (Value & GetMask(field)) >> GetOffset(field);
+  }
 
 private:
+  constexpr unsigned char GetOffset(const unsigned char field) const
+  {
+    unsigned char offset = 0;
+    for (int f = 0; f < field; ++f)
+    {
+      offset += Fields[f];
+    }
+    return offset;
+  }
+  constexpr BaseType GetMask(const unsigned char field) const
+  {
+    const BaseType mask = BaseType(QTagUtil::ipow(2, Fields[field]) - 1) << GetOffset(field);
+    return mask;
+  }
+
   BaseType Value;
 };
 

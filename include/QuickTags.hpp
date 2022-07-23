@@ -100,7 +100,12 @@ template<typename BaseType, unsigned char... Field>
 class QuickTag2
 {
   static constexpr std::size_t NumFields = sizeof...(Field);
-  static constexpr unsigned char Fields[NumFields] = { Field... };
+  struct NumFieldsSizeArray
+  {
+    BaseType Data[NumFields];
+    constexpr       BaseType& operator[](std::size_t idx)       { return Data[idx]; }
+    constexpr const BaseType& operator[](std::size_t idx) const { return Data[idx]; }
+  };
 
 public:
   constexpr QuickTag2() : Value(0) {}
@@ -110,34 +115,147 @@ public:
     Value = 0;
     for (int f = 0; f < NumFields; ++f)
     {
-      const unsigned char offset = GetOffset(f);
+      const BaseType value = fields[f];
+      if (value == 0)
+      {
+        // End of valid data
+        return;
+      }
+      const BaseType offset = GetOffset(f);
       const BaseType mask = GetMask(f);
       Value |= (fields[f] << offset) & mask;
     }
   }
 
-  BaseType GetField(const unsigned char field) const
+  // Non-templated GetField when index is not known at compile time
+  constexpr BaseType GetField(const unsigned char field) const
   {
     return (Value & GetMask(field)) >> GetOffset(field);
   }
 
-private:
-  constexpr unsigned char GetOffset(const unsigned char field) const
+  // Templated GetField when index is known. GCC prefers this to the above variant.
+  template<unsigned char field>
+  constexpr BaseType GetField() const
   {
-    unsigned char offset = 0;
-    for (int f = 0; f < field; ++f)
-    {
-      offset += Fields[f];
-    }
-    return offset;
+    return GetField(field);
   }
-  constexpr BaseType GetMask(const unsigned char field) const
+
+  constexpr void SetField(const unsigned char field, const BaseType fieldValue)
   {
-    const BaseType mask = BaseType(QTagUtil::ipow(2, Fields[field]) - 1) << GetOffset(field);
-    return mask;
+    const BaseType maskedValue = (fieldValue & GetMaskSize(field)) << GetOffset(field);
+    // (Value & ~maskValue) unsets old field
+    // | maskValue) sets to new field value
+    Value = (Value & ~maskedValue) | maskedValue;
+  }
+
+  template<unsigned char field>
+  constexpr BaseType SetField(const BaseType fieldValue) const
+  {
+    SetField(field, fieldValue);
+  }
+
+  constexpr bool IsValid() const
+  {
+    bool bValid = Value != 0;
+    if (!bValid)
+    {
+      return false;
+    }
+
+    // Scan backwards from last field, if we find a null value before a valid value, we've got bad data
+    int validFields = 0;
+    for (int f = NumFields-1; f >= 0; --f)
+    {
+      const BaseType field = Value & GetMask(f);
+      if (field != 0)
+      {
+        validFields++;
+      }
+      else if(validFields > 0)
+      {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  //constexpr int GetDepth() const
+  //{
+  //  // Check each field until we find a 0
+  //  int depth = 0;
+  //}
+
+  bool operator==(const QuickTag2<BaseType, Field...>& rhs) const { return Value == rhs.Value; }
+  bool operator!=(const QuickTag2<BaseType, Field...>& rhs) const { return !(*this == rhs); }
+
+  bool operator<(const QuickTag2<BaseType, Field...>& rhs) const { return Value < rhs.Value; }
+  bool operator>(const QuickTag2<BaseType, Field...>& rhs) const { return rhs < *this; }
+  bool operator<=(const QuickTag2<BaseType, Field...>& rhs) const { return !(*this > rhs); }
+  bool operator>=(const QuickTag2<BaseType, Field...>& rhs) const { return !(*this < rhs); }
+
+  constexpr bool MatchesExact(const QuickTag2<BaseType, Field...>& tagToMatch) const
+  {
+    return *this == tagToMatch;
+  }
+
+private:
+  static constexpr NumFieldsSizeArray GenFieldOffsets()
+  {
+    constexpr unsigned char bits = sizeof(BaseType) * 8;
+    NumFieldsSizeArray fieldOffsets = { 0 };
+    for (int f = 0; f < NumFields; ++f)
+    {
+      // Pack backwards so that first field is "largest"
+      // This lets us sort with <
+      unsigned char offset = Fields[0];
+      for (int nf = 1; nf < f + 1; ++nf)
+      {
+        offset += Fields[nf];
+      }
+      fieldOffsets[f] = bits - offset;
+    }
+    return fieldOffsets;
+  }
+
+  static constexpr NumFieldsSizeArray GenFieldMaskSizes()
+  {
+    NumFieldsSizeArray fieldMaskSizes = { 0 };
+    for (int f = 0; f < NumFields; ++f)
+    {
+      fieldMaskSizes[f] = BaseType(QTagUtil::ipow(2, Fields[f]) - 1);
+    }
+    return fieldMaskSizes;
+  }
+
+  static constexpr NumFieldsSizeArray GenFieldMasks()
+  {
+    NumFieldsSizeArray fieldMasks = { 0 };
+    for (int f = 0; f < NumFields; ++f)
+    {
+      fieldMasks[f] = GetMaskSize(f) << GetOffset(f);
+    }
+    return fieldMasks;
+  }
+
+  static constexpr BaseType GetOffset(const unsigned char field)
+  {
+    return FieldOffsets[field];
+  }
+  static constexpr BaseType GetMaskSize(const unsigned char field)
+  {
+    return FieldMaskSizes[field];
+  }
+  static constexpr BaseType GetMask(const unsigned char field)
+  {
+    return FieldMasks[field];
   }
 
   BaseType Value;
+
+  static constexpr unsigned char Fields[NumFields] = { Field... };
+  static constexpr NumFieldsSizeArray FieldOffsets = GenFieldOffsets();
+  static constexpr NumFieldsSizeArray FieldMaskSizes = GenFieldMaskSizes();
+  static constexpr NumFieldsSizeArray FieldMasks = GenFieldMasks();
 };
 
 /*

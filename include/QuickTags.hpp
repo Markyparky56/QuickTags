@@ -127,6 +127,12 @@ public:
     }
   }
 
+  template<class... Args>
+  static constexpr QuickTag2<BaseType, Field...> MakeTag(Args... fieldValues)
+  {
+    return QuickTag2<BaseType, Field...>({ (BaseType)fieldValues... });
+  }
+
   // Non-templated GetField when index is not known at compile time
   constexpr BaseType GetField(const unsigned char field) const
   {
@@ -179,11 +185,28 @@ public:
     return true;
   }
 
-  //constexpr int GetDepth() const
-  //{
-  //  // Check each field until we find a 0
-  //  int depth = 0;
-  //}
+  constexpr int GetDepth() const
+  {
+    if (Value == 0)
+    {
+      return 0;
+    }
+
+    // Check each field until we find a 0
+    int depth = 0;
+    for (int f = 0; f < NumFields; ++f)
+    {
+      const BaseType fieldMask = GetMask(f);
+      if ((Value & fieldMask) != 0)
+      {
+        depth++;
+      }
+      else
+      {
+        return depth;
+      }
+    }
+  }
 
   bool operator==(const QuickTag2<BaseType, Field...>& rhs) const { return Value == rhs.Value; }
   bool operator!=(const QuickTag2<BaseType, Field...>& rhs) const { return !(*this == rhs); }

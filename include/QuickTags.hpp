@@ -1,6 +1,8 @@
 #pragma once
-#include <stdint.h>
-#include <tuple>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <cstdio>
 
 namespace QTagUtil
 {
@@ -10,94 +12,8 @@ namespace QTagUtil
   }
 }
 
-namespace QuickTags
-{
-  // Helper to expose ::Type for expansion in std::tuple
-  template<typename OuterType>
-  class TagBlockBaseType
-  {
-  public:
-    using Type = OuterType;
-  };
-
-  template<int offset, int maskSize>
-  class TagBlock : public TagBlockBaseType<TagBlock<offset, maskSize>>
-  {
-    static_assert(maskSize != 0, "Invalid MaskSize for TagBlock");
-    static_assert(offset >= 0 && offset < 63, "Invalid Offset for TagBlock");
-  public:
-    // How many bits to shift to get the value
-    static constexpr uint8_t Offset = offset;
-    // How large is the mask
-    static constexpr uint8_t MaskSize = maskSize;
-  };
-}
-
-template<typename BaseType, class... TagBlocks>
-class QuickTag
-{
-  using FieldsType = std::tuple<typename TagBlocks::Type...>;
-public:
-  QuickTag() : QuickTag(0) {}
-  QuickTag(BaseType value)
-    : Value(value)
-  {
-  }
-
-  template<std::size_t N>
-  static QuickTag<BaseType, TagBlocks...> MakeTag(const BaseType(&comps)[N])
-  {
-    static_assert(N == std::tuple_size_v<FieldsType>, "MakeTag called with incorrect number of components");
-    QuickTag tag;
-    tag.SetComponents<N>(comps, std::make_integer_sequence<int, N>{});
-    return tag;
-  }
-
-  template<int FieldN>
-  BaseType Get() const
-  {
-    constexpr auto field = std::get<FieldN>(Fields);
-    return (Value & GetFieldMask<FieldN>()) >> field.Offset;
-  }
-
-private:
-  template<int FieldN>
-  constexpr BaseType GetFieldMask() const
-  {
-    constexpr auto field = std::get<FieldN>(Fields);
-    constexpr uint8_t offset = field.Offset;
-    constexpr uint8_t maskSize = field.MaskSize;
-    constexpr BaseType mask = BaseType(QTagUtil::ipow(2, maskSize) - 1) << offset;
-    return mask;
-  }
-
-  template<int Size, int... Ns>
-  void SetComponents(const BaseType(&comps)[Size], std::integer_sequence<int, Ns...>&&)
-  {
-    SetComponents<Size, Ns...>(comps);
-  }
-
-  template<int Size>
-  void SetComponents(const BaseType(&comps)[Size])
-  {
-  }
-
-  template<int Size, int N, int... Ns>
-  void SetComponents(const BaseType(&comps)[Size])
-  {
-    constexpr auto field = std::get<N>(Fields);    
-    Value |= (comps[N] << field.Offset) & GetFieldMask<N>();
-
-    SetComponents<Size, Ns...>(comps);
-  }
-
-
-  static constexpr FieldsType Fields = std::make_tuple(TagBlocks()...);
-  BaseType Value;
-};
-
 template<typename BaseType, unsigned char... Field>
-class QuickTag2
+class QuickTag
 {
   static constexpr std::size_t NumFields = sizeof...(Field);
   struct NumFieldsSizeArray
@@ -108,9 +24,9 @@ class QuickTag2
   };
 
 public:
-  constexpr QuickTag2() : Value(0) {}
-  explicit constexpr QuickTag2(BaseType rawValue) : Value(rawValue) {}
-  constexpr QuickTag2(const BaseType(&fields)[NumFields])
+  constexpr QuickTag() : Value(0) {}
+  explicit constexpr QuickTag(BaseType rawValue) : Value(rawValue) {}
+  constexpr QuickTag(const BaseType(&fields)[NumFields])
   {
     Value = 0;
     for (int f = 0; f < NumFields; ++f)
@@ -128,9 +44,9 @@ public:
   }
 
   template<class... Args>
-  static constexpr QuickTag2<BaseType, Field...> MakeTag(Args... fieldValues)
+  static constexpr QuickTag<BaseType, Field...> MakeTag(Args... fieldValues)
   {
-    return QuickTag2<BaseType, Field...>({ (BaseType)fieldValues... });
+    return QuickTag<BaseType, Field...>({ (BaseType)fieldValues... });
   }
 
   // Non-templated GetField when index is not known at compile time
@@ -163,7 +79,7 @@ public:
   constexpr bool IsValid() const
   {
     // First check if Value is set
-    if (Value != 0)
+    if (Value == 0)
     {
       return false;
     }
@@ -206,19 +122,122 @@ public:
         return depth;
       }
     }
+    return depth;
   }
 
-  bool operator==(const QuickTag2<BaseType, Field...>& rhs) const { return Value == rhs.Value; }
-  bool operator!=(const QuickTag2<BaseType, Field...>& rhs) const { return !(*this == rhs); }
+  bool operator==(const QuickTag<BaseType, Field...>& rhs) const { return Value == rhs.Value; }
+  bool operator!=(const QuickTag<BaseType, Field...>& rhs) const { return !(*this == rhs); }
 
-  bool operator<(const QuickTag2<BaseType, Field...>& rhs) const { return Value < rhs.Value; }
-  bool operator>(const QuickTag2<BaseType, Field...>& rhs) const { return rhs < *this; }
-  bool operator<=(const QuickTag2<BaseType, Field...>& rhs) const { return !(*this > rhs); }
-  bool operator>=(const QuickTag2<BaseType, Field...>& rhs) const { return !(*this < rhs); }
+  bool operator<(const QuickTag<BaseType, Field...>& rhs) const { return Value < rhs.Value; }
+  bool operator>(const QuickTag<BaseType, Field...>& rhs) const { return rhs < *this; }
+  bool operator<=(const QuickTag<BaseType, Field...>& rhs) const { return !(*this > rhs); }
+  bool operator>=(const QuickTag<BaseType, Field...>& rhs) const { return !(*this < rhs); }
 
-  constexpr bool MatchesExact(const QuickTag2<BaseType, Field...>& tagToMatch) const
+  constexpr bool MatchesExact(const QuickTag<BaseType, Field...>& tagToMatch) const
   {
+    if (!tagToMatch.IsValid())
+    {
+      return false;
+    }
+
     return *this == tagToMatch;
+  }
+
+  // In this style of FGameplayTag...
+  // "A.1".Matches("A") will return True, "A".Matches("A.1") will return False
+  constexpr bool Matches(const QuickTag<BaseType, Field...>& tagToMatch) const
+  {
+    if (!tagToMatch.IsValid())
+    {
+      return false;
+    }
+
+    // Compare depths
+    const int myDepth = GetDepth();
+    const int theirDepth = tagToMatch.GetDepth();
+    if (theirDepth > myDepth)
+    {
+      return false;
+    }
+    else if (theirDepth == myDepth)
+    {
+      return *this == tagToMatch;
+    }
+    else // theirDepth < myDepth (compare parents)
+    {
+      // Build mask from their depth
+      unsigned int parentMask = 0;
+      for (int f = 0; f < theirDepth; ++f)
+      {
+        parentMask |= GetMask(f);
+      }
+      // Compare our parents with tagToMatch
+      return ((Value & parentMask) == tagToMatch.Value);
+    }
+  }
+
+  // Allocate a char array with a string containing a textual representation of the Tag's Value
+  // string must be deleted/freed by caller!
+  char* ValueAsString() const
+  {
+    unsigned int strLen = 0;
+    BaseType fields[NumFields];
+    unsigned int fieldSize[NumFields];
+    // Calculate how long the string needs to be
+    for (int f = 0; f < NumFields; ++f)
+    {
+      BaseType value = GetField(f);
+      fields[f] = value; // Save for string conversion
+      
+      unsigned int len = 0;
+      do
+      {
+        len += 1; // Always at least 1 ('0')
+        value /= 10; // Base 10
+      } while (value);
+
+      fieldSize[f] = len;
+
+      if (f < NumFields - 1)
+      {
+        len += 1; // . separator
+      }
+
+      strLen += len;
+    }
+    strLen += 1; // null terminator
+
+    // Allocate
+    //if (char* outStr = (char*)malloc(strLen*sizeof(char)))
+    if (char* outStr = new char[strLen])
+    {
+      char* strPlace = outStr;
+      unsigned int remainingStrLen = strLen;
+      for (int f = 0; f < NumFields; ++f)
+      {
+        const BaseType value = fields[f];
+        char buf[22]; // 2^64 is 20 characters, +1 for null, +1 for possible minus symbol (unlikely)
+        snprintf(buf, 22, "%d", value); // int to string
+
+        // Write buffer to string
+        strncpy_s(strPlace, remainingStrLen, buf, fieldSize[f]);
+        
+        strPlace += fieldSize[f];
+        remainingStrLen -= fieldSize[f];
+
+        // Add deliminator
+        if (f < NumFields - 1)
+        {
+          strncpy_s(strPlace, remainingStrLen, ".", 1);
+          strPlace++;
+          remainingStrLen--;
+        }
+      }
+      // End
+      *strPlace = '\0';
+      return outStr;
+    }
+    return nullptr;
   }
 
 private:
@@ -280,41 +299,3 @@ private:
   static constexpr NumFieldsSizeArray FieldMaskSizes = GenFieldMaskSizes();
   static constexpr NumFieldsSizeArray FieldMasks = GenFieldMasks();
 };
-
-/*
-* Untemplated Reference
-class QuickTag
-{
-public:
-  template<int offset, int maskSize>
-  struct TagBlock
-  {
-    static_assert(maskSize != 0, "Invalid MaskSize for TagBlock");
-    static_assert(offset >= 0 && offset < 63, "Invalid Offset for TagBlock");
-
-    // How many bits to shift to get the value
-    static constexpr uint8_t Offset = offset;
-    // How large is the mask
-    static constexpr uint8_t MaskSize = maskSize;
-  };
-
-  QuickTag() : QuickTag(0) {}
-  QuickTag(uint64_t value)
-    : Value(value)
-  {
-  }
-
-  template<int FieldN>
-  uint64_t Get()
-  {
-    constexpr TagBlock field = std::get<FieldN>(Fields);
-    constexpr uint64_t mask = uint64_t(QTagUtil::ipow(2, field.MaskSize) - 1) << field.Offset;
-    return (Value & mask) >> field.Offset;
-  }
-
-private:
-  static constexpr std::tuple<TagBlock<0, 16>, TagBlock<16, 16>, TagBlock<32, 16>, TagBlock<48, 16>> Fields
-    = std::make_tuple(TagBlock<0, 16>(), TagBlock<16, 16>(), TagBlock<32, 16>(), TagBlock<48, 16>());
-  uint64_t Value;
-};
-*/

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="QuickTag2&lt;*&gt;">
+    <DisplayString>{ Value }</DisplayString>
+    <Expand>
+      <CustomListItems>
+        <Variable Name="field" InitialValue="0"/>
+        <Variable Name="fieldValue" InitialValue="0"/>
+        <Loop>
+          <Exec><![CDATA[fieldValue = (Value & FieldMasks.Data[field]) >> FieldOffsets.Data[field]]]></Exec>
+          <Item>fieldValue</Item>
+          
+          <Exec>field++</Exec>
+          <Break Condition="field == NumFields"/>
+        </Loop>
+      </CustomListItems>
+    </Expand>
+  </Type>
+</AutoVisualizer>

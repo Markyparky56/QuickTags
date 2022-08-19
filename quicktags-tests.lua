@@ -9,5 +9,6 @@ project "quicktags-tests"
     files
     {
         "include/*.hpp",
-        "src/*.cpp"
+        "src/*.cpp",
+        "quicktags.natvis"
     }

@@ -1,5 +1,5 @@
-project "quicktags-tests"
-    kind "ConsoleApp"
+project "quicktags-loader"
+    kind "StaticLib"
     language "C++"
     cppdialect "C++20"
     includedirs
@@ -9,6 +9,7 @@ project "quicktags-tests"
     files
     {
         "include/QuickTags.hpp",
-        "src/quicktags-tests.cpp",
+        "include/QuickTags-Loader.hpp",
+        "src/QuickTags-Loader.cpp",
         "quicktags.natvis"
     }

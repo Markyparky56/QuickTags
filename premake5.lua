@@ -44,3 +44,5 @@ workspace "QuickTags"
         flags { "MultiProcessorCompile" }
 
 include "quicktags-tests.lua"
+include "quicktags-loader.lua"
+include "quicktags-analyser.lua"

@@ -143,7 +143,7 @@ public:
     return *this == tagToMatch;
   }
 
-  // In this style of FGameplayTag...
+  // In the style of FGameplayTag...
   // "A.1".Matches("A") will return True, "A".Matches("A.1") will return False
   constexpr bool Matches(const QuickTag<BaseType, Field...>& tagToMatch) const
   {

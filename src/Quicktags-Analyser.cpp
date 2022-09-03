@@ -46,17 +46,30 @@ int main(int argc, char** argv)
   printf("Analysing %s ...\n", tagsFile.c_str());
 
   std::fstream fileStream = std::fstream(tagsFile, std::ios_base::in);
-  if (fileStream.is_open())
+  if (!fileStream.is_open())
   {
-    std::unordered_set<std::string> tagStringSet;
-    BuildTagStringSetFromFile(fileStream, tagStringSet);
-
-    for (const std::string& tagString : tagStringSet)
-    {
-      printf("Found Tag %s\n", tagString.c_str());
-    }
+    printf("Failed to open file %s", tagsFile.c_str());
+    return -2;
   }
 
+  std::set<std::string> tagStringSet;
+  BuildTagStringSetFromFile(fileStream, tagStringSet);
+
+  if (tagStringSet.size() == 0)
+  {
+    printf("No valid tags found in file");
+    return -3;
+  }
+
+  // Verbose
+  for (const std::string& tagString : tagStringSet)
+  {
+    printf("Found Tag %s\n", tagString.c_str());
+  }
+
+  // Build tree of tags
+  std::vector<TagTreeNode> tagTrees;
+  TreeifyTags(tagStringSet, tagTrees);
 
   return 0;
 }

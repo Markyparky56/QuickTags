@@ -1,7 +1,9 @@
 #include "QuickTags-Loader.hpp"
 #include <sstream>
+#include <bit>
+#include <numeric>
 
-//#include "stdio.h"
+#include <cstdio>
 
 void BuildTagStringSetFromFile(std::fstream& inFile, std::set<std::string>& outStringSet)
 {
@@ -61,26 +63,6 @@ void TreeifyTags(const std::set<std::string>& inStringSet, std::vector<TagTreeNo
       tagTreeIt = --outTagTrees.end();
     }
 
-    //// Create new top-level node
-    //if (subStrings.size() == 1)
-    //{
-    //  outTagTrees.emplace_back(subStrings[0]);
-    //  continue;
-    //}
-
-    //// Find top-level tag
-    //const std::string& first = subStrings[0];
-    //std::vector<TagTreeNode>::iterator tagTreeIt = std::find(outTagTrees.begin(), outTagTrees.end(), first);
-    //if (tagTreeIt == outTagTrees.end())
-    //{
-    //  printf("Tag %s out of order somehow?\n", tagString.c_str());
-    //  continue;
-    //}
-
-    // Else matched top-level tag, add sub-tags to top-level tag, following the chain down    
-
-    //subStrIt++; // Step forward to first sub-tag string
-
     // Working sub-tag
     std::vector<TagTreeNode>::iterator subTagTreeIt;
 
@@ -123,4 +105,133 @@ void TreeifyTags(const std::set<std::string>& inStringSet, std::vector<TagTreeNo
       }
     }
   }
+}
+
+void EnumerateTags(std::vector<TagTreeNode>& tags)
+{
+  for (int nodeIdx = 0; nodeIdx < tags.size(); ++nodeIdx)
+  {
+    TagTreeNode& node = tags[nodeIdx];
+    node.TagAsInt = nodeIdx + 1; // +1 since 0 denotes"None"/"Unset"
+    if (node.SubTags.size() > 0)
+    {
+      EnumerateTags(node.SubTags);
+    }
+  }
+}
+
+void DescendTree(const TagTreeNode& currentNode, const int currentDepth, std::vector<unsigned int>& outRanges)
+{
+  printf("\tCurrent Node: %s looking at sub tags for depth %d\n", currentNode.Tag.c_str(), currentDepth);
+
+  const std::vector<TagTreeNode>& subTags = currentNode.SubTags;
+  const int numTagsAtDepth = (int)subTags.size();
+
+  printf("\t\tNum sub tags: %d\n", numTagsAtDepth);
+  if (numTagsAtDepth == 0)
+  {
+    printf("\t\tNo sub tags, returning\n");
+    return;
+  }
+
+  if (outRanges.size() == currentDepth)
+  {
+    printf("\t\tNew Depth Entry, setting to %d\n", numTagsAtDepth);
+    outRanges.push_back(numTagsAtDepth);
+  }
+  else
+  {
+    const int oldEntry = outRanges[currentDepth];
+    if (oldEntry < numTagsAtDepth)
+    {
+      printf("\t\tReplacing entry for depth %d\n", currentDepth);
+      outRanges[currentDepth] = numTagsAtDepth;
+    }
+    else
+    {
+      printf("\t\tExisting entry for depth %d higher or same (%d vs %d)\n", currentDepth, oldEntry, numTagsAtDepth);
+    }
+  }
+
+  // Continue to sub nodes
+  for (const TagTreeNode& subNode : subTags)
+  {
+    DescendTree(subNode, currentDepth + 1, outRanges);
+  }
+}
+
+void FindTagRanges(const std::vector<TagTreeNode>& inTags, std::vector<unsigned int>& outRanges)
+{
+  outRanges.clear();
+
+  if (inTags.size() == 0)
+  {
+    return;
+  }
+
+  // First range is just the number of trees we have
+  outRanges.push_back((unsigned int)inTags.size());
+  printf("Num Top-Level Tags: %d\n", outRanges.front());
+
+  // Walk down each tree, finding the biggest TagAsInt for each level, updating outRanges
+  for (const TagTreeNode& tree : inTags)
+  {
+    printf("Tree: %s\n", tree.Tag.c_str()); 
+    int depth = 1;
+    DescendTree(tree, depth, outRanges);
+  }
+}
+
+void GetRequiredBitsPerField(const std::vector<unsigned int>& fieldRanges, std::vector<unsigned int>& outBits)
+{
+  for (const unsigned int field : fieldRanges)
+  {
+    outBits.push_back(std::bit_width(field));
+  }
+}
+
+EQTagIntBase FindSmallestIntBase(const std::vector<unsigned int>& inBits)
+{
+  unsigned int sumOfBits = std::accumulate(inBits.begin(), inBits.end(), 0);
+  unsigned int nextPow2 = std::bit_ceil(sumOfBits);
+
+  switch (nextPow2)
+  {
+  case 8 : return EQTagIntBase::UInt8;
+  case 16: return EQTagIntBase::UInt16;
+  case 32: return EQTagIntBase::UInt32;
+  case 64: return EQTagIntBase::UInt64;
+  }
+  // If you need more than 64 bits, add your own 128bit case
+  return EQTagIntBase::UInt64;
+}
+
+std::string GetTemplateString(const EQTagIntBase base, const std::vector<unsigned int>& fieldBits)
+{
+  //std::string str = ;
+  std::stringstream ss;
+  ss << "using QTag = QuickTag<";
+
+  switch (base)
+  {
+  case EQTagIntBase::UInt8 : ss << "std::uint8_t, " ; break;
+  case EQTagIntBase::UInt16: ss << "std::uint16_t, "; break;
+  case EQTagIntBase::UInt32: ss << "std::uint32_t, "; break;
+  case EQTagIntBase::UInt64: ss << "std::uint64_t, "; break;
+  }
+
+  //for (const unsigned int fieldSize : fieldBits)
+  for (int f = 0; f < fieldBits.size(); ++f)
+  {
+    const unsigned int fieldSize = fieldBits[f];
+    ss << fieldSize;
+    if (f < (fieldBits.size() - 1))
+    {
+      ss << ", ";
+    }
+  }
+  ss << ">;";
+
+  std::string str = ss.str();
+  return str;
 }

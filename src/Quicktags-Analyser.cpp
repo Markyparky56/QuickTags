@@ -71,5 +71,18 @@ int main(int argc, char** argv)
   std::vector<TagTreeNode> tagTrees;
   TreeifyTags(tagStringSet, tagTrees);
 
+  // Enumerate (not necessary for analysis)
+  EnumerateTags(tagTrees);
+
+  std::vector<unsigned int> ranges;
+  FindTagRanges(tagTrees, ranges);
+
+  std::vector<unsigned int> requiredBitsPerField;
+  GetRequiredBitsPerField(ranges, requiredBitsPerField);
+
+  // Output template configuration
+  std::string usingString = GetTemplateString(FindSmallestIntBase(requiredBitsPerField), requiredBitsPerField);
+  printf("Recommended QTag Configuration:\n%s\n", usingString.c_str());
+
   return 0;
 }

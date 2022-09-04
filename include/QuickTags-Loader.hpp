@@ -4,8 +4,8 @@
 #include <string>
 #include <fstream>
 #include <set>
-//#include <unordered_map>
 #include <vector>
+#include <span>
 
 void BuildTagStringSetFromFile(std::fstream& inFile, std::set<std::string>& outStringSet);
 
@@ -27,3 +27,20 @@ struct TagTreeNode
 };
 
 void TreeifyTags(const std::set<std::string>& inStringSet, std::vector<TagTreeNode>& outTagTrees);
+
+void EnumerateTags(std::vector<TagTreeNode>& tags);
+
+void FindTagRanges(const std::vector<TagTreeNode>& inTags, std::vector<unsigned int>& outRanges);
+
+void GetRequiredBitsPerField(const std::vector<unsigned int>& fieldRanges, std::vector<unsigned int>& outBits);
+
+enum class EQTagIntBase
+{
+  UInt8,
+  UInt16,
+  UInt32,
+  UInt64
+};
+EQTagIntBase FindSmallestIntBase(const std::vector<unsigned int>& inBits);
+
+std::string GetTemplateString(const EQTagIntBase base, const std::vector<unsigned int>& fieldBits);

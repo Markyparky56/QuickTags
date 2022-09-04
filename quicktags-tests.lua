@@ -12,3 +12,4 @@ project "quicktags-tests"
         "src/quicktags-tests.cpp",
         "quicktags.natvis"
     }
+    links { "quicktags-loader" }

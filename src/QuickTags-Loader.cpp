@@ -1,11 +1,12 @@
 #include "QuickTags-Loader.hpp"
-#include <sstream>
 #include <bit>
 #include <numeric>
 
 #include <cstdio>
 
-void BuildTagStringSetFromFile(std::fstream& inFile, std::set<std::string>& outStringSet)
+using QTagUtil::TagTreeNode;
+
+void QTagUtil::BuildTagStringSetFromFile(std::fstream& inFile, std::set<std::string>& outStringSet)
 {
   for (std::string line; std::getline(inFile, line); )
   {
@@ -30,7 +31,7 @@ void SplitString(const std::string& inStr, std::vector<std::string>& outSubStrs)
   }
 }
 
-void TreeifyTags(const std::set<std::string>& inStringSet, std::vector<TagTreeNode>& outTagTrees)
+void QTagUtil::TreeifyTags(const std::set<std::string>& inStringSet, std::list<TagTreeNode>& outTagTrees)
 {
   for (const std::string& tagString : inStringSet)
   {
@@ -49,7 +50,7 @@ void TreeifyTags(const std::set<std::string>& inStringSet, std::vector<TagTreeNo
 
     // Check if top-level node exists
     const std::string& first = *subStrIt;
-    std::vector<TagTreeNode>::iterator tagTreeIt = std::find(outTagTrees.begin(), outTagTrees.end(), first);
+    std::list<TagTreeNode>::iterator tagTreeIt = std::find(outTagTrees.begin(), outTagTrees.end(), first);
     if (tagTreeIt == outTagTrees.end())
     {
       printf("%s top-level tag not seen before, creating\n", first.c_str());
@@ -64,11 +65,11 @@ void TreeifyTags(const std::set<std::string>& inStringSet, std::vector<TagTreeNo
     }
 
     // Working sub-tag
-    std::vector<TagTreeNode>::iterator subTagTreeIt;
+    std::list<TagTreeNode>::iterator subTagTreeIt;
 
     // Starting values
     TagTreeNode* node = &*tagTreeIt;
-    std::vector<TagTreeNode>* subTags = &node->SubTags;
+    std::list<TagTreeNode>* subTags = &node->SubTags;
 
     // For each substring, walk down the tree, adding new nodes as needed
     for (++subStrIt; subStrIt != subStrings.end(); ++subStrIt)
@@ -81,15 +82,21 @@ void TreeifyTags(const std::set<std::string>& inStringSet, std::vector<TagTreeNo
       {
         printf("\t%s not seen before, emplacing below %s\n", subStrIt->c_str(), node->Tag.c_str());
 
+        TagTreeNode* parentNode = node;
         // Tag not seen before, add to list
         node = &(subTags->emplace_back(*subStrIt));
+        node->ParentTag = parentNode;
+        printf("\tSetting %s's parent to be %s\n", node->Tag.c_str(), node->ParentTag->Tag.c_str());
         
         // Fast-path, add rest of sub strings going down from this node
         for (++subStrIt; subStrIt != subStrings.end(); ++subStrIt)
         {
           printf("\tEmplacing %s below %s\n", subStrIt->c_str(), node->Tag.c_str());
 
+          parentNode = node;
           node = &(node->SubTags.emplace_back(*subStrIt));
+          node->ParentTag = parentNode;
+          printf("\tSetting %s's parent to be %s\n", node->Tag.c_str(), node->ParentTag->Tag.c_str());
         }
         break;
       }
@@ -107,11 +114,13 @@ void TreeifyTags(const std::set<std::string>& inStringSet, std::vector<TagTreeNo
   }
 }
 
-void EnumerateTags(std::vector<TagTreeNode>& tags)
+void QTagUtil::EnumerateTags(std::list<TagTreeNode>& tags)
 {
   for (int nodeIdx = 0; nodeIdx < tags.size(); ++nodeIdx)
   {
-    TagTreeNode& node = tags[nodeIdx];
+    std::list<TagTreeNode>::iterator it = tags.begin();
+    std::advance(it, nodeIdx);
+    TagTreeNode& node = *it;
     node.TagAsInt = nodeIdx + 1; // +1 since 0 denotes"None"/"Unset"
     if (node.SubTags.size() > 0)
     {
@@ -124,7 +133,7 @@ void DescendTree(const TagTreeNode& currentNode, const int currentDepth, std::ve
 {
   printf("\tCurrent Node: %s looking at sub tags for depth %d\n", currentNode.Tag.c_str(), currentDepth);
 
-  const std::vector<TagTreeNode>& subTags = currentNode.SubTags;
+  const std::list<TagTreeNode>& subTags = currentNode.SubTags;
   const int numTagsAtDepth = (int)subTags.size();
 
   printf("\t\tNum sub tags: %d\n", numTagsAtDepth);
@@ -160,7 +169,7 @@ void DescendTree(const TagTreeNode& currentNode, const int currentDepth, std::ve
   }
 }
 
-void FindTagRanges(const std::vector<TagTreeNode>& inTags, std::vector<unsigned int>& outRanges)
+void QTagUtil::FindTagRanges(const std::list<TagTreeNode>& inTags, std::vector<unsigned int>& outRanges)
 {
   outRanges.clear();
 
@@ -182,7 +191,7 @@ void FindTagRanges(const std::vector<TagTreeNode>& inTags, std::vector<unsigned 
   }
 }
 
-void GetRequiredBitsPerField(const std::vector<unsigned int>& fieldRanges, std::vector<unsigned int>& outBits)
+void QTagUtil::GetRequiredBitsPerField(const std::vector<unsigned int>& fieldRanges, std::vector<unsigned int>& outBits)
 {
   for (const unsigned int field : fieldRanges)
   {
@@ -190,7 +199,7 @@ void GetRequiredBitsPerField(const std::vector<unsigned int>& fieldRanges, std::
   }
 }
 
-EQTagIntBase FindSmallestIntBase(const std::vector<unsigned int>& inBits)
+QTagUtil::EQTagIntBase QTagUtil::FindSmallestIntBase(const std::vector<unsigned int>& inBits)
 {
   unsigned int sumOfBits = std::accumulate(inBits.begin(), inBits.end(), 0);
   unsigned int nextPow2 = std::bit_ceil(sumOfBits);
@@ -206,7 +215,7 @@ EQTagIntBase FindSmallestIntBase(const std::vector<unsigned int>& inBits)
   return EQTagIntBase::UInt64;
 }
 
-std::string GetTemplateString(const EQTagIntBase base, const std::vector<unsigned int>& fieldBits)
+std::string QTagUtil::GetTemplateString(const EQTagIntBase base, const std::vector<unsigned int>& fieldBits)
 {
   //std::string str = ;
   std::stringstream ss;
@@ -234,4 +243,13 @@ std::string GetTemplateString(const EQTagIntBase base, const std::vector<unsigne
 
   std::string str = ss.str();
   return str;
+}
+
+void QTagUtil::Internal::GetAllSubTags(const TagTreeNode& topLevelNode, std::vector<const TagTreeNode*>& outNodes)
+{
+  for (const TagTreeNode& subTag : topLevelNode.SubTags)
+  {
+    outNodes.push_back(&subTag);
+    GetAllSubTags(subTag, outNodes);
+  }
 }

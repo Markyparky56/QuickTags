@@ -1,4 +1,5 @@
 #include "QuickTags.hpp"
+#include "QuickTags-Loader.hpp"
 
 #include <cstdio>
 
@@ -18,6 +19,18 @@ int main(int argc, char** argv)
 
   printf("tag.Matches(tag2): %d\n", tag.Matches(tag2));
   printf("tag2.Matches(tag): %d\n", tag2.Matches(tag));
+
+  using QTag2 = QuickTag<uint8_t, 2, 2, 2, 1, 1>;
+
+  std::fstream file = std::fstream("../../../../src/Tags.txt", std::ios_base::in);
+  if (!file.is_open())
+  {
+    return -1;
+  }
+
+  std::map<QTag2, std::string> tagStringMap;
+  std::vector<QTag2> tags;
+  QTagUtil::LoadQuickTagsFromFile(file, tagStringMap, tags);
 
   return 0;
 }

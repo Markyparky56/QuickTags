@@ -15,6 +15,7 @@ namespace QTagUtil
 template<typename BaseType, unsigned char... Field>
 class QuickTag
 {
+  using TagBaseType = BaseType;
   static constexpr std::size_t NumFields = sizeof...(Field);
   struct NumFieldsSizeArray
   {
@@ -29,18 +30,13 @@ public:
   constexpr QuickTag(const BaseType(&fields)[NumFields])
   {
     Value = 0;
-    for (int f = 0; f < NumFields; ++f)
-    {
-      const BaseType value = fields[f];
-      if (value == 0)
-      {
-        // End of valid data
-        return;
-      }
-      const BaseType offset = GetOffset(f);
-      const BaseType mask = GetMask(f);
-      Value |= (fields[f] << offset) & mask;
-    }
+    SetValueFromArray(fields, NumFields);
+  }
+  constexpr QuickTag(const BaseType* const fields, const int num)
+  {
+    Value = 0;
+    const int loopDepth = num < NumFields ? num : NumFields; // Min
+    SetValueFromArray(fields, loopDepth);
   }
 
   template<class... Args>
@@ -241,6 +237,22 @@ public:
   }
 
 private:
+  void SetValueFromArray(const BaseType* arr, const int len)
+  {
+    for (int f = 0; f < len; ++f)
+    {
+      const BaseType value = arr[f];
+      if (value == 0)
+      {
+        // End of valid data
+        return;
+      }
+      const BaseType offset = GetOffset(f);
+      const BaseType mask = GetMask(f);
+      Value |= (arr[f] << offset) & mask;
+    }
+  }
+
   static constexpr NumFieldsSizeArray GenFieldOffsets()
   {
     constexpr unsigned char bits = sizeof(BaseType) * 8;

@@ -7,6 +7,8 @@
 
 int main(int argc, char** argv)
 {
+  using namespace QTagUtil;
+
   std::string tagsFile;
 
   for (int i = 0; i < argc; ++i)
@@ -68,7 +70,7 @@ int main(int argc, char** argv)
   }
 
   // Build tree of tags
-  std::vector<TagTreeNode> tagTrees;
+  std::list<TagTreeNode> tagTrees;
   TreeifyTags(tagStringSet, tagTrees);
 
   // Enumerate (not necessary for analysis)

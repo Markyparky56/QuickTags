@@ -15,7 +15,6 @@ namespace QTagUtil
 template<typename BaseType, unsigned char... Field>
 class QuickTag
 {
-  using TagBaseType = BaseType;
   static constexpr std::size_t NumFields = sizeof...(Field);
   struct NumFieldsSizeArray
   {
@@ -25,6 +24,8 @@ class QuickTag
   };
 
 public:
+  using TagBaseType = BaseType;
+
   constexpr QuickTag() : Value(0) {}
   explicit constexpr QuickTag(BaseType rawValue) : Value(rawValue) {}
   constexpr QuickTag(const BaseType(&fields)[NumFields])

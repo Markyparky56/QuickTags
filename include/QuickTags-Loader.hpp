@@ -63,8 +63,6 @@ namespace QTagUtil
       using TagStringPair = std::pair<QTag, std::string>;
       using StringValuesPair = std::pair<std::string, std::vector<std::uint64_t>>;
 
-      std::unordered_map<std::string, std::vector<std::uint64_t>> tagStringAndFieldValues;
-
       std::vector<const TagTreeNode*> allNodes;
       allNodes.push_back(&topLevelNode);
       GetAllSubTags(topLevelNode, allNodes);
@@ -83,13 +81,26 @@ namespace QTagUtil
 
         // Re-assemble tag string
         std::stringstream ss;
+        std::vector<typename QTag::TagBaseType> tagFieldValues;
         for (std::vector<const TagTreeNode*>::reverse_iterator rit = parents.rbegin(); rit != parents.rend(); ++rit)
         {
-          ss << (*rit)->Tag.c_str() << '.';
+          const TagTreeNode& node = **rit;
+          ss << node.Tag.c_str() << '.';
+          tagFieldValues.push_back((typename QTag::TagBaseType)node.TagAsInt);
         }
         ss << node->Tag.c_str();
+        tagFieldValues.push_back((typename QTag::TagBaseType)node->TagAsInt);
         std::string tagString = ss.str();
-        printf("%s\n", tagString.c_str());
+        
+        QTag tag;
+        for (int i = (int)tagFieldValues.size() - 1; i >= 0; --i)
+        {
+          tag.SetField((unsigned char)i, tagFieldValues[i]);
+        }
+        char* tagAsString = tag.ValueAsString();
+
+        printf("%s: \t\t%s\n", tagString.c_str(), tagAsString);
+        delete[] tagAsString;
 
         // TODO: Create QTag
         // Add to outTags

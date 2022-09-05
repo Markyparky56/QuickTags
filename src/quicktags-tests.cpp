@@ -32,5 +32,17 @@ int main(int argc, char** argv)
   std::vector<QTag2> tags;
   QTagUtil::LoadQuickTagsFromFile(file, tagStringMap, tags);
 
+  for (const std::pair<QTag2, std::string>& tag : tagStringMap)
+  {
+    char* tagString = tag.first.ValueAsString();
+    printf("%s:\t%s\n", tagString, tag.second.c_str());
+    delete[] tagString;
+  }
+
+  for (const QTag2& tag : tags)
+  {
+    printf("%d\n", tag.GetRaw());
+  }
+
   return 0;
 }

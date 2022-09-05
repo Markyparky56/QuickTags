@@ -205,7 +205,6 @@ public:
     strLen += 1; // null terminator
 
     // Allocate
-    //if (char* outStr = (char*)malloc(strLen*sizeof(char)))
     if (char* outStr = new char[strLen])
     {
       char* strPlace = outStr;
@@ -236,6 +235,8 @@ public:
     }
     return nullptr;
   }
+
+  BaseType GetRaw() const { return Value; }
 
 private:
   void SetValueFromArray(const BaseType* arr, const int len)

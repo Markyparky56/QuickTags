@@ -58,7 +58,7 @@ namespace QTagUtil
     void GetAllSubTags(const TagTreeNode& topLevelNode, std::vector<const TagTreeNode*>& outNodes);
 
     template<class QTag>
-    void GetEachTagAsQTag(const TagTreeNode& topLevelNode, std::map<QTag, std::string>& outTagStringMap, std::vector<QTag> outTags)
+    void GetEachTagAsQTag(const TagTreeNode& topLevelNode, std::map<QTag, std::string>& outTagStringMap, std::vector<QTag>& outTags)
     {
       using TagStringPair = std::pair<QTag, std::string>;
       using StringValuesPair = std::pair<std::string, std::vector<std::uint64_t>>;
@@ -86,12 +86,14 @@ namespace QTagUtil
         {
           const TagTreeNode& node = **rit;
           ss << node.Tag.c_str() << '.';
+          // Collect value as well
           tagFieldValues.push_back((typename QTag::TagBaseType)node.TagAsInt);
         }
         ss << node->Tag.c_str();
         tagFieldValues.push_back((typename QTag::TagBaseType)node->TagAsInt);
         std::string tagString = ss.str();
         
+        // Loop backwards over values array to set each field in tag
         QTag tag;
         for (int i = (int)tagFieldValues.size() - 1; i >= 0; --i)
         {
@@ -99,12 +101,14 @@ namespace QTagUtil
         }
         char* tagAsString = tag.ValueAsString();
 
-        printf("%s: \t\t%s\n", tagString.c_str(), tagAsString);
+        printf("%s:\t\t%s\n", tagString.c_str(), tagAsString);
         delete[] tagAsString;
 
-        // TODO: Create QTag
         // Add to outTags
+        outTags.push_back(tag);
+        
         // Add to outTagStringMap
+        outTagStringMap.emplace(tag, tagString);
       }
     }
   }  

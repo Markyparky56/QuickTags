@@ -6,6 +6,12 @@
 
 using QTagUtil::TagTreeNode;
 
+#ifdef QTAG_DEBUGSTRINGS
+#define QTAG_LOG(...) printf(__VA_ARGS__)
+#else
+#define QTAG_LOG(...)
+#endif
+
 void QTagUtil::BuildTagStringSetFromFile(std::fstream& inFile, std::set<std::string>& outStringSet)
 {
   for (std::string line; std::getline(inFile, line); )
@@ -35,7 +41,7 @@ void QTagUtil::TreeifyTags(const std::set<std::string>& inStringSet, std::list<T
 {
   for (const std::string& tagString : inStringSet)
   {
-    printf("Tag String: %s\n", tagString.c_str());
+    QTAG_LOG("Tag String: %s\n", tagString.c_str());
     // Split tag string into components
     std::vector<std::string> subStrings;
     SplitString(tagString, subStrings);
@@ -53,7 +59,7 @@ void QTagUtil::TreeifyTags(const std::set<std::string>& inStringSet, std::list<T
     std::list<TagTreeNode>::iterator tagTreeIt = std::find(outTagTrees.begin(), outTagTrees.end(), first);
     if (tagTreeIt == outTagTrees.end())
     {
-      printf("%s top-level tag not seen before, creating\n", first.c_str());
+      QTAG_LOG("%s top-level tag not seen before, creating\n", first.c_str());
 
       // Create new top-level node
       outTagTrees.emplace_back(subStrings[0]);
@@ -75,34 +81,34 @@ void QTagUtil::TreeifyTags(const std::set<std::string>& inStringSet, std::list<T
     for (++subStrIt; subStrIt != subStrings.end(); ++subStrIt)
     {
       // Does this sub-tag exist on this node?
-      printf("Current Node: %s\n", node->Tag.c_str());
-      printf("\tLooking for %s\n", subStrIt->c_str());
+      QTAG_LOG("Current Node: %s\n", node->Tag.c_str());
+      QTAG_LOG("\tLooking for %s\n", subStrIt->c_str());
       subTagTreeIt = std::find(subTags->begin(), subTags->end(), *subStrIt);
       if (subTagTreeIt == subTags->end())
       {
-        printf("\t%s not seen before, emplacing below %s\n", subStrIt->c_str(), node->Tag.c_str());
+        QTAG_LOG("\t%s not seen before, emplacing below %s\n", subStrIt->c_str(), node->Tag.c_str());
 
         TagTreeNode* parentNode = node;
         // Tag not seen before, add to list
         node = &(subTags->emplace_back(*subStrIt));
         node->ParentTag = parentNode;
-        printf("\tSetting %s's parent to be %s\n", node->Tag.c_str(), node->ParentTag->Tag.c_str());
+        QTAG_LOG("\tSetting %s's parent to be %s\n", node->Tag.c_str(), node->ParentTag->Tag.c_str());
         
         // Fast-path, add rest of sub strings going down from this node
         for (++subStrIt; subStrIt != subStrings.end(); ++subStrIt)
         {
-          printf("\tEmplacing %s below %s\n", subStrIt->c_str(), node->Tag.c_str());
+          QTAG_LOG("\tEmplacing %s below %s\n", subStrIt->c_str(), node->Tag.c_str());
 
           parentNode = node;
           node = &(node->SubTags.emplace_back(*subStrIt));
           node->ParentTag = parentNode;
-          printf("\tSetting %s's parent to be %s\n", node->Tag.c_str(), node->ParentTag->Tag.c_str());
+          QTAG_LOG("\tSetting %s's parent to be %s\n", node->Tag.c_str(), node->ParentTag->Tag.c_str());
         }
         break;
       }
       else
       {
-        printf("\t%s seen before, switching to that node\n", subTagTreeIt->Tag.c_str());
+        QTAG_LOG("\t%s seen before, switching to that node\n", subTagTreeIt->Tag.c_str());
         // Update working data
         node = &*subTagTreeIt;
         subTags = &node->SubTags;
@@ -131,21 +137,21 @@ void QTagUtil::EnumerateTags(std::list<TagTreeNode>& tags)
 
 void DescendTree(const TagTreeNode& currentNode, const int currentDepth, std::vector<unsigned int>& outRanges)
 {
-  printf("\tCurrent Node: %s looking at sub tags for depth %d\n", currentNode.Tag.c_str(), currentDepth);
+  QTAG_LOG("\tCurrent Node: %s looking at sub tags for depth %d\n", currentNode.Tag.c_str(), currentDepth);
 
   const std::list<TagTreeNode>& subTags = currentNode.SubTags;
   const int numTagsAtDepth = (int)subTags.size();
 
-  printf("\t\tNum sub tags: %d\n", numTagsAtDepth);
+  QTAG_LOG("\t\tNum sub tags: %d\n", numTagsAtDepth);
   if (numTagsAtDepth == 0)
   {
-    printf("\t\tNo sub tags, returning\n");
+    QTAG_LOG("\t\tNo sub tags, returning\n");
     return;
   }
 
   if (outRanges.size() == currentDepth)
   {
-    printf("\t\tNew Depth Entry, setting to %d\n", numTagsAtDepth);
+    QTAG_LOG("\t\tNew Depth Entry, setting to %d\n", numTagsAtDepth);
     outRanges.push_back(numTagsAtDepth);
   }
   else
@@ -153,12 +159,12 @@ void DescendTree(const TagTreeNode& currentNode, const int currentDepth, std::ve
     const int oldEntry = outRanges[currentDepth];
     if (oldEntry < numTagsAtDepth)
     {
-      printf("\t\tReplacing entry for depth %d\n", currentDepth);
+      QTAG_LOG("\t\tReplacing entry for depth %d\n", currentDepth);
       outRanges[currentDepth] = numTagsAtDepth;
     }
     else
     {
-      printf("\t\tExisting entry for depth %d higher or same (%d vs %d)\n", currentDepth, oldEntry, numTagsAtDepth);
+      QTAG_LOG("\t\tExisting entry for depth %d higher or same (%d vs %d)\n", currentDepth, oldEntry, numTagsAtDepth);
     }
   }
 
@@ -180,12 +186,12 @@ void QTagUtil::FindTagRanges(const std::list<TagTreeNode>& inTags, std::vector<u
 
   // First range is just the number of trees we have
   outRanges.push_back((unsigned int)inTags.size());
-  printf("Num Top-Level Tags: %d\n", outRanges.front());
+  QTAG_LOG("Num Top-Level Tags: %d\n", outRanges.front());
 
   // Walk down each tree, finding the biggest TagAsInt for each level, updating outRanges
   for (const TagTreeNode& tree : inTags)
   {
-    printf("Tree: %s\n", tree.Tag.c_str()); 
+    QTAG_LOG("Tree: %s\n", tree.Tag.c_str()); 
     int depth = 1;
     DescendTree(tree, depth, outRanges);
   }

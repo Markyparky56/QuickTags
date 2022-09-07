@@ -99,10 +99,12 @@ namespace QTagUtil
         {
           tag.SetField((unsigned char)i, tagFieldValues[i]);
         }
-        char* tagAsString = tag.ValueAsString();
 
+#ifdef QTAG_DEBUGSTRINGS
+        char* tagAsString = tag.ValueAsString();
         printf("%s:\t\t%s\n", tagString.c_str(), tagAsString);
         delete[] tagAsString;
+#endif
 
         // Add to outTags
         outTags.push_back(tag);

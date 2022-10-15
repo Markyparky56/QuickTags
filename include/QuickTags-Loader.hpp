@@ -13,6 +13,7 @@
 
 namespace QTagUtil
 {
+  void BuildTagStringSetFromFiles(std::vector<std::fstream>& inFiles, std::set<std::string>& outStringSet);
   void BuildTagStringSetFromFile(std::fstream& inFile, std::set<std::string>& outStringSet);
 
   struct TagTreeNode

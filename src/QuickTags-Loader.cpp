@@ -12,6 +12,14 @@ using QTagUtil::TagTreeNode;
 #define QTAG_LOG(...)
 #endif
 
+void QTagUtil::BuildTagStringSetFromFiles(std::vector<std::fstream>& inFiles, std::set<std::string>& outStringSet)
+{
+  for (std::fstream& file : inFiles)
+  {
+    BuildTagStringSetFromFile(file, outStringSet);
+  }
+}
+
 void QTagUtil::BuildTagStringSetFromFile(std::fstream& inFile, std::set<std::string>& outStringSet)
 {
   for (std::string line; std::getline(inFile, line); )

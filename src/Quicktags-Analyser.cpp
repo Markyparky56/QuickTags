@@ -9,11 +9,11 @@ int main(int argc, char** argv)
 {
   using namespace QTagUtil;
 
-  std::string tagsFile;
+  std::vector<std::string> tagsFiles;
 
   for (int i = 0; i < argc; ++i)
   {
-    printf("%s\n", argv[i]);
+    //printf("%s\n", argv[i]);
     std::string arg = argv[i];
     if (arg == "-f")
     {
@@ -29,7 +29,7 @@ int main(int argc, char** argv)
             return -1;
           }
         }
-        tagsFile = argv[i];
+        tagsFiles.push_back(argv[i]);
       }
       else
       {
@@ -39,23 +39,29 @@ int main(int argc, char** argv)
     } // end -f    
   }
 
-  if (tagsFile.empty())
+  if (tagsFiles.empty())
   {
     printf("No file provided");
     return -1;
   }
 
-  printf("Analysing %s ...\n", tagsFile.c_str());
-
-  std::fstream fileStream = std::fstream(tagsFile, std::ios_base::in);
-  if (!fileStream.is_open())
+  std::vector<std::fstream> files;
+  files.reserve(tagsFiles.size());
+  for (const std::string& tagsFile : tagsFiles)
   {
-    printf("Failed to open file %s", tagsFile.c_str());
-    return -2;
+    printf("Analysing %s ...\n", tagsFile.c_str());
+
+    std::fstream fileStream = std::fstream(tagsFile, std::ios_base::in);
+    if (!fileStream.is_open())
+    {
+      printf("Failed to open file %s", tagsFile.c_str());
+      continue;
+    }
+    files.push_back(std::move(fileStream));
   }
 
   std::set<std::string> tagStringSet;
-  BuildTagStringSetFromFile(fileStream, tagStringSet);
+  BuildTagStringSetFromFiles(files, tagStringSet);
 
   if (tagStringSet.size() == 0)
   {

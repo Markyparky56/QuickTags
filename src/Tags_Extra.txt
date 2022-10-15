@@ -3,6 +3,8 @@ d.c.b.a1
 d.c.b.a2
 d.c.b.b
 d.c.b.c
+D.A.A.A
+d.a.a.a
 x
 x.y
 x.y.z

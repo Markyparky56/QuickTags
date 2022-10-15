@@ -13,8 +13,14 @@
 
 namespace QTagUtil
 {
-  void BuildTagStringSetFromFiles(std::vector<std::fstream>& inFiles, std::set<std::string>& outStringSet);
-  void BuildTagStringSetFromFile(std::fstream& inFile, std::set<std::string>& outStringSet);
+  enum class ETagSetFlags : unsigned int
+  {
+    None = 0,
+    CaseInsensitive = (1 << 0),
+  };
+
+  void BuildTagStringSetFromFiles(std::vector<std::fstream>& inFiles, std::set<std::string>& outStringSet, ETagSetFlags flags=ETagSetFlags::None);
+  void BuildTagStringSetFromFile(std::fstream& inFile, std::set<std::string>& outStringSet, ETagSetFlags flags=ETagSetFlags::None);
 
   struct TagTreeNode
   {

@@ -10,10 +10,12 @@ int main(int argc, char** argv)
   using namespace QTagUtil;
 
   std::vector<std::string> tagsFiles;
+  bool bCaseInsensitive = false;
 
   for (int i = 0; i < argc; ++i)
   {
-    //printf("%s\n", argv[i]);
+    printf("%s ", argv[i]);
+
     std::string arg = argv[i];
     if (arg == "-f")
     {
@@ -29,6 +31,7 @@ int main(int argc, char** argv)
             return -1;
           }
         }
+        printf("%s", argv[i]);
         tagsFiles.push_back(argv[i]);
       }
       else
@@ -36,12 +39,19 @@ int main(int argc, char** argv)
         printf("-f param but no file provided");
         return -1;
       }
-    } // end -f    
+    } // end -f
+
+    if (arg == "-case-insensitive")
+    {
+      bCaseInsensitive = true;
+    }
+
+    printf("\n");
   }
 
   if (tagsFiles.empty())
   {
-    printf("No file provided");
+    printf("No file(s) provided");
     return -1;
   }
 
@@ -49,7 +59,7 @@ int main(int argc, char** argv)
   files.reserve(tagsFiles.size());
   for (const std::string& tagsFile : tagsFiles)
   {
-    printf("Analysing %s ...\n", tagsFile.c_str());
+    printf("Opening file %s for analysis...\n", tagsFile.c_str());
 
     std::fstream fileStream = std::fstream(tagsFile, std::ios_base::in);
     if (!fileStream.is_open())
@@ -60,8 +70,14 @@ int main(int argc, char** argv)
     files.push_back(std::move(fileStream));
   }
 
+  ETagSetFlags flags = ETagSetFlags::None;
+  if (bCaseInsensitive)
+  {
+    flags = (ETagSetFlags)((unsigned int)flags | (unsigned int)ETagSetFlags::CaseInsensitive);
+  }
+
   std::set<std::string> tagStringSet;
-  BuildTagStringSetFromFiles(files, tagStringSet);
+  BuildTagStringSetFromFiles(files, tagStringSet, flags);
 
   if (tagStringSet.size() == 0)
   {

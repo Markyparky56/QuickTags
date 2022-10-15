@@ -1,7 +1,7 @@
 #include "QuickTags-Loader.hpp"
 #include <bit>
 #include <numeric>
-
+#include <algorithm>
 #include <cstdio>
 
 using QTagUtil::TagTreeNode;
@@ -12,21 +12,37 @@ using QTagUtil::TagTreeNode;
 #define QTAG_LOG(...)
 #endif
 
-void QTagUtil::BuildTagStringSetFromFiles(std::vector<std::fstream>& inFiles, std::set<std::string>& outStringSet)
+void QTagUtil::BuildTagStringSetFromFiles(std::vector<std::fstream>& inFiles, std::set<std::string>& outStringSet, ETagSetFlags flags)
 {
   for (std::fstream& file : inFiles)
   {
-    BuildTagStringSetFromFile(file, outStringSet);
+    BuildTagStringSetFromFile(file, outStringSet, flags);
   }
 }
 
-void QTagUtil::BuildTagStringSetFromFile(std::fstream& inFile, std::set<std::string>& outStringSet)
+void QTagUtil::BuildTagStringSetFromFile(std::fstream& inFile, std::set<std::string>& outStringSet, ETagSetFlags flags)
 {
+  bool bCaseInsensitive = (unsigned int)flags & (unsigned int)ETagSetFlags::CaseInsensitive;
+
   for (std::string line; std::getline(inFile, line); )
   {
     // Validate string
     const bool noSpaces = line.find_first_of(' ') == -1;
     const bool noTabs = line.find_first_of('\t') == -1;
+
+    if (bCaseInsensitive)
+    {
+      // toupper line
+      // NOTE: For proper text handling, ICU should be used to for proper unicode support
+      // This transform will only handle basic ascii
+      std::transform(line.begin(), line.end(), line.begin(), [](unsigned char c)
+        {
+          return std::toupper(c);
+        });
+
+      // TODO: For aesthetic purposes, we can keep a copy of the original line for doing things like
+      // exposing to the user (if they have an editor) and for converting to enums in case we're ruining CamelCase tags
+    }
 
     if (noSpaces && noTabs)
     {

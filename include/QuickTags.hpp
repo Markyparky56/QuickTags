@@ -63,7 +63,7 @@ public:
   {
     const BaseType maskedValue = (fieldValue & GetMaskSize(field)) << GetOffset(field);
     // (Value & ~maskValue) unsets old field
-    // | maskValue) sets to new field value
+    // | maskValue sets to new field value
     Value = (Value & ~maskedValue) | maskedValue;
   }
 

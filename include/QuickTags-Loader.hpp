@@ -45,9 +45,9 @@ namespace QTagUtil
 
   void EnumerateTags(std::list<TagTreeNode>& tags);
 
-  void FindTagRanges(const std::list<TagTreeNode>& inTags, std::vector<unsigned int>& outRanges);
+  void FindTagRanges(const std::list<TagTreeNode>& inTags, std::vector<std::uint32_t>& outRanges);
 
-  void GetRequiredBitsPerField(const std::vector<unsigned int>& fieldRanges, std::vector<unsigned int>& outBits);
+  void GetRequiredBitsPerField(const std::vector<std::uint32_t>& fieldRanges, std::vector<std::uint32_t>& outBits);
 
   enum class EQTagIntBase
   {
@@ -56,9 +56,9 @@ namespace QTagUtil
     UInt32,
     UInt64
   };
-  EQTagIntBase FindSmallestIntBase(const std::vector<unsigned int>& inBits);
+  EQTagIntBase FindSmallestIntBase(const std::vector<std::uint32_t>& inBits);
 
-  std::string GetTemplateString(const EQTagIntBase base, const std::vector<unsigned int>& fieldBits);
+  std::string GetTemplateString(const EQTagIntBase base, const std::vector<std::uint32_t>& fieldBits);
   
   namespace Internal
   {

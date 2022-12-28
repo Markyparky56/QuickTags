@@ -33,7 +33,7 @@ void QTagUtil::BuildTagStringSetFromFile(std::fstream& inFile, std::set<std::str
     if (bCaseInsensitive)
     {
       // toupper line
-      // NOTE: For proper text handling, ICU should be used to for proper unicode support
+      // NOTE: For proper text handling, ICU should be used for proper unicode support
       // This transform will only handle basic ascii
       std::transform(line.begin(), line.end(), line.begin(), [](unsigned char c)
         {
@@ -247,7 +247,6 @@ QTagUtil::EQTagIntBase QTagUtil::FindSmallestIntBase(const std::vector<unsigned 
 
 std::string QTagUtil::GetTemplateString(const EQTagIntBase base, const std::vector<unsigned int>& fieldBits)
 {
-  //std::string str = ;
   std::stringstream ss;
   ss << "using QTag = QuickTag<";
 
@@ -256,13 +255,13 @@ std::string QTagUtil::GetTemplateString(const EQTagIntBase base, const std::vect
   case EQTagIntBase::UInt8 : ss << "std::uint8_t, " ; break;
   case EQTagIntBase::UInt16: ss << "std::uint16_t, "; break;
   case EQTagIntBase::UInt32: ss << "std::uint32_t, "; break;
+  default:
   case EQTagIntBase::UInt64: ss << "std::uint64_t, "; break;
   }
 
-  //for (const unsigned int fieldSize : fieldBits)
-  for (int f = 0; f < fieldBits.size(); ++f)
+  for (size_t f = 0; f < fieldBits.size(); ++f)
   {
-    const unsigned int fieldSize = fieldBits[f];
+    const std::uint32_t fieldSize = fieldBits[f];
     ss << fieldSize;
     if (f < (fieldBits.size() - 1))
     {
